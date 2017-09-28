@@ -11,10 +11,14 @@ void readerHandler(int sig)
 
 int main(){
     signal(SIGUSR1,readerHandler);
-    while(true){
+    pid_t pid;
+    pid = getpid();
+    printf("Child %ld is starting...\n", (long)pid);
+    while(1){
         while(!received);
-        printf("SIGUSR1 received.\n");
+        printf("Child %ld received SIGUSR1 signal.\n", (long)pid);
         received = 0;
+        //exit(EXIT_SUCCESS);
     }
     return 0;
 }
