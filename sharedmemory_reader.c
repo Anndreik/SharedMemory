@@ -27,7 +27,7 @@ int main(){
         number = *ShmPTR;
         printf("Child process %ld - number in shared memory is : %d\n", (long)pid, number);
         received = 0;
-        exit(EXIT_SUCCESS);
+        //exit(EXIT_SUCCESS);
     }
     return 0;
 }

@@ -3,16 +3,25 @@
 #define MAX_VALUE 1000
 #define MIN_VALUE 2
 
+static int handle_var = 0;
+
+void writerHandler(int sig)
+{
+    if (sig == SIGINT)
+    {
+        handle_var = 1;
+    }
+}
+
 int main(){
-    int i, j;
+    int i, j, k;
     int status = 0;
     pid_t wpid;
     int ShmID;
     int *ShmPTR;
+    pid_t child_pid[3];
     ShmID = shmget(SHM_KEY, sizeof(int), IPC_CREAT | 0666);
 
-
-    pid_t child_pid[3];
     for (i = 0; i < 3; i++){
         switch(fork()){
             case -1:
@@ -26,25 +35,35 @@ int main(){
         }
     }
 
+    signal(SIGINT, writerHandler);
     //Parent comes here; Send a signal to notify the children
     srand(time(NULL) + getpid());
     int number;
     
-    //while(1){
+    while(1){
         printf("Parent: before sending signals to children\n");
         
         number = (rand() % (MAX_VALUE+1-MIN_VALUE)) + MIN_VALUE;
         printf("Parent generated number %d\n", number);
         ShmPTR = (int *) shmat(ShmID, NULL, 0);
         *ShmPTR = number;
-        printf("Parent ------- Number in shared memory is %d\n", *ShmPTR);
+        
         sleep(2);
         //printf("----------------------------------------------\n");
-        for( j = 0; j < 3; ++j){
+        /*for( j = 0; j < 3; ++j){
             //printf("Sending signal to child %ld\n", (long)child_pid[j]);
             kill(child_pid[j], SIGUSR1);
-        }
-    //}
+        }*/
+        printf("handle_var = %d\n", handle_var);
+        if(handle_var)
+            break;
+    }
+    //kill all the children before
+    for( k = 0; k < 3; ++k){
+        printf("Killing child %ld...\n", (long)child_pid[k]);
+        kill(child_pid[k], SIGKILL);
+    }
+    
     //wait on all children before exiting
     while ((wpid = wait(&status)) > 0);
     
