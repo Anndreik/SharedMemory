@@ -7,7 +7,9 @@ int main(){
     int i, j;
     int status = 0;
     pid_t wpid;
-    //ShmID = shmget(SHM_KEY, sizeof(int), IPC_CREAT | 0666);
+    int ShmID;
+    int *ShmPTR;
+    ShmID = shmget(SHM_KEY, sizeof(int), IPC_CREAT | 0666);
 
 
     pid_t child_pid[3];
@@ -25,23 +27,31 @@ int main(){
     }
 
     //Parent comes here; Send a signal to notify the children
-    srand(time(NULL));
+    srand(time(NULL) + getpid());
     int number;
     
-    while(1){
-
+    //while(1){
         printf("Parent: before sending signals to children\n");
+        
         number = (rand() % (MAX_VALUE+1-MIN_VALUE)) + MIN_VALUE;
         printf("Parent generated number %d\n", number);
-        sleep(1);
-        printf("----------------------------------------------\n");
+        ShmPTR = (int *) shmat(ShmID, NULL, 0);
+        *ShmPTR = number;
+        printf("Parent ------- Number in shared memory is %d\n", *ShmPTR);
+        sleep(2);
+        //printf("----------------------------------------------\n");
         for( j = 0; j < 3; ++j){
-            printf("Sending signal to child %ld\n", (long)child_pid[j]);
+            //printf("Sending signal to child %ld\n", (long)child_pid[j]);
             kill(child_pid[j], SIGUSR1);
         }
-    }
+    //}
     //wait on all children before exiting
     while ((wpid = wait(&status)) > 0);
+    
+    /* detach shared memory segment */  
+    shmdt(ShmPTR);  
+    /* remove shared memory segment */  
+    shmctl(ShmID, IPC_RMID, NULL);
 
     return 0;
 }
