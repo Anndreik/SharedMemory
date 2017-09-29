@@ -1,16 +1,21 @@
 #include "shm_header.h"
 
-static int received = 0;
+static volatile int received = 0;
 void readerHandler(int sig)
-{
+{  
     if (sig == SIGUSR1)
     {
         received = 1;
+        signal(SIGUSR1,readerHandler);
     }
+    
 }
 
 int main(){
-    signal(SIGUSR1,readerHandler);
+    if(signal(SIGUSR1,readerHandler) == SIG_ERR){
+        printf("Binding Signal readerHandler error!\n");
+        exit(EXIT_FAILURE);
+    }
     int ShmID;
     int *ShmPTR;
     int number;
@@ -25,9 +30,9 @@ int main(){
         //printf("Child %ld Reading from the shared memory...\n", (long)pid);
         ShmPTR = (int *) shmat(ShmID, NULL, 0);
         number = *ShmPTR;
-        printf("Child process %ld - number in shared memory is : %d\n", (long)pid, number);
+        printf("Child reader process %ld - number in shared memory is : %d\n", (long)pid, number);
         received = 0;
         //exit(EXIT_SUCCESS);
     }
-    return 0;
+    exit(EXIT_SUCCESS);
 }

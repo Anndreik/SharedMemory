@@ -13,5 +13,4 @@
 #include <stdlib.h>
 
 #define SHM_KEY 0x1234 /* Key for shared memory segment */
-#define OBJ_PERMS (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP)
-/* Permissions for our IPC objects */
+#define OBJ_PERMS (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP) /* Permissions for our IPC objects */

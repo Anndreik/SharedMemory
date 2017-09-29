@@ -3,31 +3,40 @@
 #define MAX_VALUE 1000
 #define MIN_VALUE 2
 
-static int handle_var = 0;
+static volatile int handle_var = 0;
+static pid_t child_pid[3];
 
 void writerHandler(int sig)
 {
+    int k;
+    
     if (sig == SIGINT)
     {
         handle_var = 1;
+        for( k = 0; k < 3; ++k){
+            printf("Killing child %ld...\n", (long)child_pid[k]);
+            kill(child_pid[k], SIGKILL);
+        }
+        signal(SIGINT, writerHandler);
     }
 }
 
 int main(){
-    int i, j, k;
+    int i, j;
     int status = 0;
     pid_t wpid;
     int ShmID;
     int *ShmPTR;
-    pid_t child_pid[3];
+    
     ShmID = shmget(SHM_KEY, sizeof(int), IPC_CREAT | 0666);
 
     for (i = 0; i < 3; i++){
-        switch(fork()){
+        child_pid[i] = fork();
+        switch(child_pid[i]){ /*switch(child_pid[i]){*/
             case -1:
                 exit(EXIT_FAILURE);
             case 0: /* Child */
-                child_pid[i] = getpid();
+                //child_pid[i] = getpid();
                 //do exec
                 execvp("./sharedmemory_reader", NULL);
             default:
@@ -35,36 +44,36 @@ int main(){
         }
     }
 
-    signal(SIGINT, writerHandler);
+    if(signal(SIGINT, writerHandler) == SIG_ERR){
+        printf("Binding signal handler writerHandler to SIGINT error!\n");
+        exit(EXIT_FAILURE);
+    }
     //Parent comes here; Send a signal to notify the children
     srand(time(NULL) + getpid());
     int number;
-    
+    sleep(3);
     while(1){
-        printf("Parent: before sending signals to children\n");
-        
+        sleep(1);
+
+        if(handle_var){
+            break;
+        }
+
         number = (rand() % (MAX_VALUE+1-MIN_VALUE)) + MIN_VALUE;
-        printf("Parent generated number %d\n", number);
+        printf("Parent writer process generated number %d\n", number);
+
         ShmPTR = (int *) shmat(ShmID, NULL, 0);
         *ShmPTR = number;
-        
-        sleep(2);
-        //printf("----------------------------------------------\n");
-        /*for( j = 0; j < 3; ++j){
+        for( j = 0; j < 3; ++j){
             //printf("Sending signal to child %ld\n", (long)child_pid[j]);
             kill(child_pid[j], SIGUSR1);
-        }*/
-        printf("handle_var = %d\n", handle_var);
-        if(handle_var)
-            break;
+        }
     }
     //kill all the children before
-    for( k = 0; k < 3; ++k){
-        printf("Killing child %ld...\n", (long)child_pid[k]);
-        kill(child_pid[k], SIGKILL);
-    }
+    
     
     //wait on all children before exiting
+    printf("Wating on all the children to terminate...\n");
     while ((wpid = wait(&status)) > 0);
     
     /* detach shared memory segment */  
