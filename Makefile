@@ -1,6 +1,6 @@
 HEADERS = shm_header.h
 
-default: sharedmemory_writer 
+default: sharedmemory_writer sharedmemory_reader 
 
 sharedmemory_writer.o: sharedmemory_writer.c $(HEADERS)
 	gcc -c -D_REENTRANT sharedmemory_writer.c -lpthread -o sharedmemory_writer.o -lm
